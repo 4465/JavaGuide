@@ -104,7 +104,11 @@ protected Class<?> loadClass(String name, boolean resolve)
 
 ### 双亲委派模型的好处
 
-双亲委派模型保证了 Java 程序的稳定运行，可以避免类的重复加载（JVM 区分不同类的方式不仅仅根据类名，相同的类文件被不同的类加载器加载产生的是两个不同的类），也保证了 Java 的核心 API 不被篡改。如果没有使用双亲委派模型，而是每个类加载器加载自己的话就会出现一些问题，比如我们编写一个称为 `java.lang.Object` 类的话，那么程序运行的时候，系统就会出现多个不同的 `Object` 类。
+- 双亲委派模型保证了 Java 程序的稳定运行，
+- 可以避免类的重复加载（JVM 区分不同类的方式不仅仅根据类名，相同的类文件被不同的类加载器加载产生的是两个不同的类），
+- 也保证了 Java 的核心 API 不被篡改。
+
+如果没有使用双亲委派模型，而是每个类加载器加载自己的话就会出现一些问题，比如我们编写一个称为 `java.lang.Object` 类的话，那么程序运行的时候，系统就会出现多个不同的 `Object` 类。
 
 ### 如果我们不想用双亲委派模型怎么办？
 
@@ -114,7 +118,78 @@ protected Class<?> loadClass(String name, boolean resolve)
 
 ## 自定义类加载器
 
-除了 `BootstrapClassLoader` 其他类加载器均由 Java 实现且全部继承自`java.lang.ClassLoader`。如果我们要自定义自己的类加载器，很明显需要继承 `ClassLoader`。
+​		通常情况下，我们都是直接使用系统类加载器。但是，有的时候，我们也需要自定义类加载器。**比如应用是通过网络来传输 Java类的字节码，为保证安全性，这些字节码经过了加密处理，这时系统类加载器就无法对其进行加载，这样则需要自定义类加载器来实现**。自定义类加载器一般都是继承自`ClassLoader`类，从上面对`loadClass`方法来分析来看，我们只需要重写 findClass 方法即可。下面我们通过一个示例来演示自定义类加载器的流程：
+
+```java
+    package com.neo.classloader;
+        
+        import java.io.*;
+        
+        public class MyClassLoader extends ClassLoader {
+            private String root;
+        
+            protected Class<?> findClass(String name) throws ClassNotFoundException {
+                byte[] classData = loadClassData(name);
+                if (classData == null) {
+                    throw new ClassNotFoundException();
+                } else {
+                    return defineClass(name, classData, 0, classData.length);
+                }
+            }
+        
+            private byte[] loadClassData(String className) {
+                String fileName = root + File.separatorChar
+                        + className.replace('.', File.separatorChar) + ".class";
+                try {
+                    InputStream ins = new FileInputStream(fileName);
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    int bufferSize = 1024;
+                    byte[] buffer = new byte[bufferSize];
+                    int length = 0;
+                    while ((length = ins.read(buffer)) != -1) {
+                        baos.write(buffer, 0, length);
+                    }
+                    return baos.toByteArray();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+        
+            public String getRoot() {
+                return root;
+            }
+        
+            public void setRoot(String root) {
+                this.root = root;
+            }
+        
+            public static void main(String[] args)  {
+        
+                MyClassLoader classLoader = new MyClassLoader();
+                classLoader.setRoot("E:\\temp");
+        
+                Class<?> testClass = null;
+                try {
+                    testClass = classLoader.loadClass("com.neo.classloader.Test2");
+                    Object object = testClass.newInstance();
+                    System.out.println(object.getClass().getClassLoader());
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+```
+
+自定义类加载器的核心在于对字节码文件的获取，如果是加密的字节码则需要在该类中对文件进行解密。由于这里只是演示，我并未对class文件进行加密，因此没有解密的过程。这里有几点需要注意：
+
+- 1、这里传递的文件名需要是类的全限定性名称，即`com.paddx.test.classloading.Test`格式的，因为 defineClass 方法是按这种格式进行处理的。
+- 2、最好不要重写loadClass方法，因为这样容易破坏双亲委托模式。
+- 3、这类Test 类本身可以被 `AppClassLoader`类加载，因此我们不能把`com/paddx/test/classloading/Test.class`放在类路径下。否则，由于双亲委托机制的存在，会直接导致该类由`AppClassLoader`加载，而不会通过我们自定义类加载器来加载。
 
 ## 推荐阅读
 

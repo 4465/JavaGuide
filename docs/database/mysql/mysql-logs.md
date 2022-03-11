@@ -1,5 +1,5 @@
 ---
-title: MySQL三大日志(binlog、redo log和undo log)详解
+  title: MySQL三大日志(binlog、redo log和undo log)详解
 category: 数据库
 tag:
   - MySQL
