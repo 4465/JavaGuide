@@ -278,7 +278,15 @@ export const sidebarConfig = defineSidebarConfig({
           collapsable: true,
           children: [
             "redis-questions-01",
-            "3-commonly-used-cache-read-and-write-strategies",
+            {
+              text: "重要知识点",
+              icon: "important",
+              collapsable: true,
+              children: [
+                "3-commonly-used-cache-read-and-write-strategies",
+                "redis-memory-fragmentation",
+              ],
+            },
           ],
         },
       ],
@@ -317,7 +325,7 @@ export const sidebarConfig = defineSidebarConfig({
           prefix: "basis/",
           icon: "basic",
           collapsable: true,
-          children: ["RESTfulAPI", "naming"],
+          children: ["RESTfulAPI", "naming", "refactoring"],
         },
         {
           text: "常用框架",
